@@ -1,4 +1,3 @@
-#main.py
 import os
 from dialog_parser import flatten_sessions
 from utils import load_json, save_json, count_turns
@@ -13,21 +12,27 @@ def parse_generated_text(text):
             turns.append({"speaker": speaker.strip(), "utterance": utterance.strip()})
     return turns
 
+def extract_persona_from_json(json_data):
+    cl_info = json_data["personaInfo"]["clInfo"]["personaFeatures"]
+    cp_info = json_data["personaInfo"]["cpInfo"]["personaFeatures"]
+    persona1 = " ".join(cl_info)
+    persona2 = " ".join(cp_info)
+    return persona1, persona2
+
 def main():
     # 파일 경로
     input_path = "data/02.라벨링데이터/session4/K4-00001-CL91073-CP94160-12-10-S4.json"
-    persona_path = "data/persona_info.json"
     prompt_template = "templates/prompt_template.txt"
     output_path = "outputs/augmented/K4-00001-augmented.json"
 
     raw_data = load_json(input_path)
-    persona = load_json(persona_path)
+    persona1, persona2 = extract_persona_from_json(raw_data)
     dialog = flatten_sessions(raw_data)
 
     while count_turns(dialog) < TARGET_TURNS:
         prompt = build_prompt(dialog, topic="호캉스",
-                              persona1=persona["speaker1"],
-                              persona2=persona["speaker2"],
+                              persona1=persona1,
+                              persona2=persona2,
                               template_path=prompt_template)
         generated = generate_next_turn(prompt)
         new_turns = parse_generated_text(generated)
