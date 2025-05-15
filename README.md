@@ -114,4 +114,4 @@ requests.post("http://localhost:8001/v1/completions", json=payload, headers=head
 
 * 작성자: \[세원님 프로젝트 기반 - 2025 R\&D 긴 대화 이해 및 요약 과제]
 * GitHub: [andimsewon/long-dialog-augment](https://github.com/andimsewon/long-dialog-augment)
-* 이메일: [your-email@example.com](mailto:your-email@example.com)
+* 이메일: [carrotsw@naver.com](mailto:your-email@example.com)
