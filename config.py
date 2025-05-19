@@ -2,5 +2,4 @@
 TARGET_TURNS = 60  # 목표 턴 수
 MAX_NEW_TOKENS = 256
 TEMPERATURE = 0.7
-
-LLAMA_SERVER_URL = "http://114.70.193.164:8001/v1/completions"  # 실제 서버 주소
+LLAMA_SERVER_URL = "http://114.70.193.164:8001/v1/completions"
