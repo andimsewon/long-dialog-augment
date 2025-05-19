@@ -8,6 +8,7 @@ LLM은 Meta LLaMA-3 기반 FastAPI 서버와 연동되어 동작합니다.
 
 ---
 한국어 멀티세션 대화 https://aihub.or.kr/aihubdata/data/view.do?currMenu=&topMenu=&aihubDataSe=data&dataSetSn=71630
+
 주제별 텍스트 일상 대화 데이터 https://aihub.or.kr/aihubdata/data/view.do?currMenu=&topMenu=&aihubDataSe=data&dataSetSn=543
 
 ## 📁 프로젝트 구조
