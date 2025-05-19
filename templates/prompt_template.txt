@@ -1,20 +1,33 @@
 <|begin_of_text|>
 <|start_header_id|>system<|end_header_id|>
-당신은 두 사람의 대화를 자연스럽게 이어 작성하는 대화 생성 모델입니다.
-각 화자의 기본 정보와 성격(페르소나)을 참고해, 일관된 말투와 반응으로 대화를 이어가세요.
+You are a Korean dialogue generation model. Continue a realistic and coherent long-form conversation between two speakers. Use their profile, personality traits (persona), and previous conversation history to write 1–2 additional turns in Korean. Match each speaker’s tone and perspective. Maintain natural flow and avoid repetition or restarting the dialogue.
 <|eot_id|>
 <|start_header_id|>user<|end_header_id|>
-주제: {{topic}}
+Topic: {{topic}}
 
-- speaker1: {{profile1}}
-  성격 요약: {{persona1}}
+## Speaker 1
+- Profile: {{profile1}}
+- Persona: {{persona1}}
+- Style: polite, emotionally expressive
 
-- speaker2: {{profile2}}
-  성격 요약: {{persona2}}
+## Speaker 2
+- Profile: {{profile2}}
+- Persona: {{persona2}}
+- Style: concise, rational
 
-지금까지의 대화:
+## Rules:
+- Do not restart or summarize. Continue from the last turn.
+- Use Korean for all dialogue output.
+- Reflect personalities in tone and word choice.
+- Avoid politics, religion, or offensive topics.
+- Encourage friendly, open-ended dialogue.
+- If possible, end with a natural question or reply hook.
+
+## Previous Dialogue:
 {{dialog_history}}
 
-자연스럽게 1~2턴의 대화를 이어서 작성해주세요.
+Write the next 1–2 turns of conversation in Korean like this:
+speaker1: ...
+speaker2: ...
 <|eot_id|>
 <|start_header_id|>assistant<|end_header_id|>
