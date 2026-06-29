@@ -23,7 +23,10 @@ Topic: {{topic}}
 - Encourage friendly, open-ended dialogue.
 - If possible, end with a natural question or reply hook.
 
-## Previous Dialogue:
+## Accumulated Persona Notes (from earlier sessions):
+{{persona_summary}}
+
+## Recent Dialogue (last window):
 {{dialog_history}}
 
 Write the next 1–2 turns of conversation in Korean like this:

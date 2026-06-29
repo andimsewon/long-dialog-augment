@@ -1,66 +1,84 @@
-import requests
+import logging
 import time
-import json
-import os
 from typing import List, Dict
-import argparse
-from dialog_parser import flatten_sessions
-from config import LLAMA_SERVER_URL, TEMPERATURE, MAX_NEW_TOKENS
 
-def build_prompt(dialog_history, topic, persona1, persona2, profile1, profile2, template_path):
-    with open(template_path, "r", encoding='utf-8') as f:
-        template = f.read()
+import requests
 
-    history_text = "\n".join([f"{d['speaker']}: {d['utterance']}" for d in dialog_history])
+from config import (
+    LLAMA_SERVER_URL, TEMPERATURE, MAX_NEW_TOKENS,
+    WINDOW_SIZE, MODEL_ID, MAX_RETRIES, REQUEST_TIMEOUT,
+)
 
-    prompt = (
-        template.replace("{{dialog_history}}", history_text)
-                .replace("{{topic}}", topic)
-                .replace("{{persona1}}", persona1)
-                .replace("{{persona2}}", persona2)
-                .replace("{{profile1}}", profile1)
-                .replace("{{profile2}}", profile2)
+logger = logging.getLogger(__name__)
+
+
+def load_template(template_path: str) -> str:
+    """Read the prompt template from disk once; callers cache the result."""
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def build_prompt(
+    dialog_history: List[Dict[str, str]],
+    topic: str,
+    persona1: str,
+    persona2: str,
+    profile1: str,
+    profile2: str,
+    template: str,          # template content string, not a file path
+    persona_summary: str = "",
+) -> str:
+    # Send only the most recent WINDOW_SIZE utterances to keep token count bounded.
+    window = dialog_history[-WINDOW_SIZE:]
+    history_text = "\n".join(
+        f"{d['speaker']}: {d['utterance']}" for d in window
     )
-    return prompt
+    return (
+        template
+        .replace("{{dialog_history}}", history_text)
+        .replace("{{persona_summary}}", persona_summary)
+        .replace("{{topic}}", topic)
+        .replace("{{persona1}}", persona1)
+        .replace("{{persona2}}", persona2)
+        .replace("{{profile1}}", profile1)
+        .replace("{{profile2}}", profile2)
+    )
 
-def generate_next_turn(prompt, max_retries=3, timeout=60):
+
+def generate_next_turn(prompt: str) -> str:
     headers = {"Content-Type": "application/json"}
 
-    system_prompt = (
-        "You are a Korean dialogue generation model. "
-        "Continue a long-form conversation between two speakers using the given profile, persona, and prior dialogue. "
-        "The output must be in natural Korean and reflect each speaker’s tone, personality, and background. "
-        "Avoid restarting or summarizing. Continue naturally."
-    )
-
-    final_input = (
-        f"<|begin_of_text|>"
-        f"<|start_header_id|>system<|end_header_id|>{system_prompt}<|eot_id|>"
-        f"<|start_header_id|>user<|end_header_id|>{prompt}<|eot_id|>"
-        f"<|start_header_id|>assistant<|end_header_id|>"
-    )
-
+    # prompt already contains the full LLaMA-3 chat format produced by build_prompt()
+    # (the template includes <|begin_of_text|>...<|start_header_id|>assistant<|end_header_id|>)
+    # — do NOT wrap it again or the model receives doubled special tokens.
     payload = {
-        "model": "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4",
-        "prompt": final_input,
+        "model": MODEL_ID,
+        "prompt": prompt,
         "max_tokens": MAX_NEW_TOKENS,
         "temperature": TEMPERATURE,
-        "stop": ["<|eot_id|>"]
+        "stop": ["<|eot_id|>"],
     }
 
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(1, MAX_RETRIES + 1):
         try:
-            print(f"🔄 LLaMA 요청 시도 {attempt} / {max_retries}")
-            response = requests.post(LLAMA_SERVER_URL, json=payload, headers=headers, timeout=timeout)
+            logger.debug("LLM request attempt %d/%d", attempt, MAX_RETRIES)
+            response = requests.post(
+                LLAMA_SERVER_URL,
+                json=payload,
+                headers=headers,
+                timeout=REQUEST_TIMEOUT,
+            )
             response.raise_for_status()
-            return response.json().get("text", "").strip()
+            # vLLM /v1/completions returns {"choices": [{"text": "..."}]}
+            choices = response.json().get("choices", [])
+            return choices[0]["text"].strip() if choices else ""
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            print(f"⏱️ 서버 응답 지연 또는 연결 오류 (시도 {attempt}): {e}")
-            if attempt < max_retries:
-                time.sleep(2 * attempt)  # 점진적 대기
+            logger.warning("Connection error on attempt %d/%d: %s", attempt, MAX_RETRIES, e)
+            if attempt < MAX_RETRIES:
+                time.sleep(2 * attempt)
             else:
-                print("❌ 최대 재시도 횟수 초과. 빈 응답 반환.")
+                logger.error("Max retries exceeded; returning empty response.")
                 return ""
         except Exception as e:
-            print("🔥 LLaMA 서버 기타 오류:", e)
+            logger.error("Unexpected error from LLM server: %s", e)
             return ""
